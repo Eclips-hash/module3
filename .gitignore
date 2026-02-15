@@ -1,0 +1,14 @@
+.Rhistory
+.RData
+.Rproj.user
+.Ruserdata
+*.html
+*.RData
+*.rda
+*.rds
+*.RDataTmp
+
+# Large data files
+data/*.txt
+metabric_data_expression.txt
+metabric_data_expression_normalised.txt
