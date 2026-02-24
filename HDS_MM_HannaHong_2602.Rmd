@@ -52,13 +52,13 @@ library(cowplot)
 
 # Abstract
 
-**Background:** PAM50 classification stratifies breast cancer patients into molecular subtypes with distinct prognoses. However, PAM50 is based solely on gene expression and may not capture prognostic heterogeneity driven by copy number alterations.
+**Background:** PAM50 classification stratifies breast cancer patients into molecular subtypes with distinct prognoses and guides patient communication about expected outcomes. However, PAM50 is based solely on gene expression and may not capture prognostic heterogeneity driven by copy number alterations. The IntClust classification system integrates copy number data with expression profiles, potentially revealing risk differences hidden within PAM50 categories.
 
-**Methods:** We analysed 1,974 METABRIC patients with complete PAM50, IntClust, and survival data using gene expression analysis, mutation profiling with maftools, and Kaplan-Meier survival analysis.
+**Methods:** We analysed 1,974 METABRIC patients with complete PAM50, IntClust, and survival data. Gene expression analysis focused on therapeutically relevant genes (ESR1, CCND1, FGFR1) using PCA and Wilcoxon rank-sum tests. Mutation profiling was performed with maftools, examining TP53 and PIK3CA patterns across IntClust groups using chi-square tests. Kaplan-Meier survival analysis with log-rank tests assessed whether IntClust classification stratifies patients beyond PAM50 and clinical variables, with extension analysis quantifying hidden heterogeneity within PAM50 Luminal patients.
 
-**Results:** Among PAM50 Luminal patients, approximately one in five (18.2%) belonged to hidden high-risk IntClust groups (2, 6, 9) showing 15.6 percentage point higher mortality and 29-month worse median survival (p < 0.001). These patients harbour CCND1 or FGFR1 amplifications with therapeutic implications not currently communicated to patients under PAM50-only classification.
+**Results:** Among 1,175 PAM50 Luminal patients, approximately one in five (18.6%) belonged to hidden high-risk IntClust groups (2, 6, 9) showing 10 percentage point higher mortality (67.1% vs 57.1%) and approximately 23-month worse median survival (p < 0.001). Gene expression analysis confirmed CCND1 and FGFR1 elevation in high-risk groups (both p < 2e-16) despite uniform ESR1 expression (p = 0.15). Mutation analysis revealed distinct patterns: TP53 mutations were enriched in high-risk groups while PIK3CA mutations predominated in low-risk groups. Standard clinical variables (age, ER status, menopausal status) could not identify the hidden high-risk subset.
 
-**Conclusion:** Nearly one in five PAM50 Luminal patients have high-risk genomic features not conveyed in current patient communication, suggesting need for comprehensive genomic profiling to inform personalised prognostic discussions.
+**Conclusion:** Nearly one in five PAM50 Luminal patients harbour high-risk genomic features—including CCND1 and FGFR1 amplifications with therapeutic implications—not conveyed in current patient communication, supporting the need for comprehensive genomic profiling to inform personalised prognostic discussions.
 
 ---
 
@@ -66,17 +66,11 @@ library(cowplot)
 
 Breast cancer is the most common cancer in women globally, with over 2 million new cases diagnosed annually (Sung et al. 2021). It comprises multiple molecular subtypes with distinct biology and prognosis. Early molecular classification efforts identified intrinsic subtypes based on gene expression patterns (Perou et al. 2000; Sørlie et al. 2001), which were later refined into the clinical PAM50 assay (Parker et al. 2009). This classification guides treatment decisions and patient counselling about prognosis.
 
-However, PAM50 uses only gene expression data and doesn't capture structural genomic changes like amplifications and deletions. While PAM50 has demonstrated clinical utility and is incorporated into genomic tests like Prosigna (Cardoso et al. 2016), the METABRIC study integrated copy number alterations with expression profiles, identifying 10 "integrative clusters" (IntClust 1-10) with distinct genomic drivers (Curtis et al. 2012). Critically, IntClust groups don't align perfectly with PAM50 subtypes—some tumours classified as "Luminal" by PAM50 belong to high-risk IntClust groups.
+However, PAM50 uses only gene expression data and doesn't capture structural genomic changes like amplifications and deletions. While PAM50 has demonstrated clinical utility and is incorporated into genomic tests like Prosigna (Cardoso et al. 2016), the METABRIC study integrated copy number alterations with expression profiles, identifying 10 "integrative clusters" (IntClust 1-10) with distinct genomic drivers (Curtis et al. 2012). Importantly, IntClust groups don't align perfectly with PAM50 subtypes—some tumours classified as "Luminal" by PAM50 belong to high-risk IntClust groups.
 
-Current patient communication relies heavily on PAM50 classification. Patients with "Luminal" breast cancer typically hear they have a favourable prognosis and will receive endocrine therapy. However, if IntClust reveals substantial heterogeneity within PAM50 Luminal disease, then some patients may be receiving inaccurate prognostic information. This study quantifies this potential communication gap using the METABRIC dataset.
+Current patient communication relies heavily on PAM50 classification. Patients with "Luminal" breast cancer typically hear they have a favourable prognosis and will receive endocrine therapy. However, if IntClust reveals substantial heterogeneity within PAM50 Luminal disease, then some patients may be receiving incomplete prognostic information. This study quantifies this potential communication gap using the METABRIC dataset.
 
-**Study aims:**
-
-1. Characterise gene expression patterns focusing on therapeutically relevant genes (ESR1, CCND1, FGFR1)
-2. Identify mutation profiles (TP53, PIK3CA) across IntClust groups
-3. Assess whether IntClust stratifies patients beyond PAM50 and clinical variables
-4. Quantify the proportion of PAM50 Luminal patients with hidden high-risk profiles
-5. Evaluate implications for genomically-informed patient communication
+This report examines whether IntClust classification reveals clinically meaningful heterogeneity within PAM50 Luminal breast cancer, focusing on three analytical questions. I first characterise gene expression patterns of therapeutically relevant genes (ESR1, CCND1, FGFR1) across IntClust groups. I then identify mutation profiles, particularly TP53 and PIK3CA, and assess how they differ across subtypes. Finally, I evaluate whether IntClust stratifies patients beyond PAM50 and standard clinical variables through survival analysis. As an extension, I quantify the proportion of PAM50 Luminal patients with hidden high-risk profiles and consider implications for how risk is communicated to patients.
 
 ---
 
@@ -84,64 +78,12 @@ Current patient communication relies heavily on PAM50 classification. Patients w
 
 ## 2.1 Data Sources
 
-Clinical and mutation data from the METABRIC study (Curtis et al. 2012) were obtained from cBioPortal (https://www.cbioportal.org). Gene expression data were accessed from the study repository on Zenodo (https://doi.org/10.5281/zenodo.18587856). All data are publicly available and de-identified. The original METABRIC study obtained ethical approval as described in Curtis et al. (2012).
+Clinical and mutation data from the METABRIC study (Curtis et al. 2012) were obtained from cBioPortal (https://www.cbioportal.org). Gene expression data were accessed from the study repository on Zenodo (https://doi.org/10.5281/zenodo.18587856). All data are publicly available and de-identified, with no individual patient identifiers retained. The original METABRIC study obtained ethical approval from institutional review boards at participating centres in the UK and Canada, as described in Curtis et al. (2012). cBioPortal provides open access to de-identified cancer genomics datasets under standard academic use terms. As this analysis uses only publicly available, fully anonymised secondary data with no possibility of re-identification, no additional ethical approval was required for this study. All analyses comply with the principles of data minimisation and purpose limitation consistent with UK data protection requirements.
 
 ```{r load-data, include=FALSE}
-# Load clinical data
+# Load clinical data (cleaning performed in clean-cdata chunk below)
 clinical <- read_csv("data/metabric_data_clinical_patient.csv", show_col_types = FALSE)
 n_original <- nrow(clinical)
-
-# Clean data
-clinical_clean <- clinical %>%
-  filter(
-    !is.na(pam50_subtype),
-    !is.na(intclust_subtype),
-    !is.na(os_months),
-    !is.na(os_status),
-    pam50_subtype != "NC",
-    os_months >= 0
-  ) %>%
-  mutate(
-    os_event = ifelse(os_status == "1:DECEASED", 1, 0),
-    os_years = os_months / 12,
-    er_status_ihc = str_replace(er_status_ihc, "Positve", "Positive"),
-    intclust_subtype = str_remove_all(intclust_subtype, "IntClust |IC")
-  )
-
-n_clean <- nrow(clinical_clean)
-n_excluded <- n_original - n_clean
-
-# Load mutation data
-maf <- read.maf(maf = "data/metabric_data_mutations.maf", verbose = FALSE)
-maf_samples <- getSampleSummary(maf)$Tumor_Sample_Barcode
-
-# Match clinical and mutation data
-matched_samples <- intersect(clinical_clean$patient_id, maf_samples)
-clinical_matched <- clinical_clean %>% filter(patient_id %in% matched_samples)
-maf_matched <- subsetMaf(maf, tsb = matched_samples)
-n_matched <- length(matched_samples)
-
-# Load expression data if available
-expr_file <- "data/metabric_data_expression_normalised.txt"
-if (file.exists(expr_file)) {
-  expression_data <- read_tsv(expr_file, show_col_types = FALSE)
-  
-  # Format expression matrix
-  gene_names <- expression_data[[1]]
-  expression_matrix <- as.matrix(expression_data[, -1])
-  rownames(expression_matrix) <- gene_names
-  expression_matrix <- t(expression_matrix)
-  
-  # Match to clinical
-  matched_expr <- intersect(rownames(expression_matrix), clinical_clean$patient_id)
-  expression_matrix <- expression_matrix[matched_expr, ]
-  clinical_with_expr <- clinical_clean %>% filter(patient_id %in% matched_expr)
-  
-  n_expr_samples <- nrow(expression_matrix)
-  has_expression <- TRUE
-} else {
-  has_expression <- FALSE
-}
 ```
 
 ## 2.2 Data Preprocessing
@@ -203,7 +145,7 @@ The original cohort comprised `r n_original` patients. We excluded patients miss
 # - Mutation type (missense, nonsense, etc.)
 # - Variant details
 
-maf <- read.maf(maf = "data/metabric_data_mutations.maf")
+maf <- read.maf(maf = "data/metabric_data_mutations.maf", verbose = FALSE)
 maf_samples <- getSampleSummary(maf)$Tumor_Sample_Barcode
 
 # Store for inline text
@@ -283,11 +225,11 @@ if (!file.exists(expr_file)) {
 
 ### Gene Expression Analysis (Question 1)
 
-We focused on three genes with established prognostic and therapeutic significance: ESR1 (estrogen receptor, defining ER-positive status), CCND1 (11q13 amplification marker, CDK4/6 inhibitor target), and FGFR1 (8p12 amplification marker, FGFR inhibitor target).
+I chose IntClust as the subtype definition rather than PAM50 because IntClust integrates copy number alterations with expression data, potentially revealing prognostic heterogeneity hidden within PAM50 categories (Curtis et al. 2012). For gene expression analysis, I focused on three genes selected for their established prognostic and therapeutic significance rather than performing unbiased genome-wide screening: ESR1 (estrogen receptor, defining ER-positive status and guiding hormone therapy), CCND1 (11q13 amplification marker defining IntClust 2, targetable by CDK4/6 inhibitors), and FGFR1 (8p12 amplification marker defining IntClust 6, potential FGFR inhibitor target).
 
 Principal component analysis (PCA) was performed using these genes plus supporting markers (PGR, MKI67, ERBB2) after z-score normalisation. Variance explained by principal components was calculated, and samples were visualised in reduced-dimension space coloured by IntClust group.
 
-Expression differences between IntClust groups were tested using Wilcoxon rank-sum tests. Statistical significance was set at p < 0.05.
+Expression differences between IntClust groups were tested using Wilcoxon rank-sum tests, chosen as a non-parametric alternative that does not assume normality in expression distributions. Statistical significance was set at p < 0.05.
 
 ### Mutation Analysis (Question 2)
 
@@ -311,7 +253,7 @@ P-values < 0.05 were considered statistically significant.
 
 ## 2.4 Software
 
-All analyses were performed in R version 4.3.0. Key packages: tidyverse (data manipulation), survival and survminer (survival analysis), maftools (mutation analysis), pheatmap (heatmaps), ggplot2 (visualisation), gtsummary (tables).
+All analyses were performed in R version 4.5.2. Key packages: tidyverse (data manipulation), survival and survminer (survival analysis), maftools (mutation analysis), pheatmap (heatmaps), ggplot2 (visualisation), gtsummary (tables).
 
 ## 2.5 Data and Code Availability
 
@@ -321,12 +263,16 @@ Clinical and mutation data are publicly available from [cBioPortal](https://www.
 
 # 3. Results
 
-## 3.1 Cohort Characteristics
+## 3.1 Data Exploration and Cohort Characteristics
+
+The METABRIC dataset is a curated teaching subset of the original Molecular Taxonomy of Breast Cancer International Consortium study, comprising clinical annotations, normalised gene expression data, and somatic mutation data in MAF format. Initial quality checks identified a typographical error in ER status values ("Positve" corrected to "Positive"), `r n_excluded` patients with missing classification or survival data, and one subtype label "NC" (not classified) requiring exclusion. After these cleaning steps, `r n_clean` patients remained for analysis. Gene expression data were available for `r if(exists("n_expr_samples")) n_expr_samples else "a subset of"` patients, and mutation data for `r n_matched` patients overlapping with the clinical cohort.
 
 ```{r cohort-summary, include=FALSE}
 # Create summary for inline text
 median_age <- median(clinical_clean$age_at_diagnosis, na.rm = TRUE)
-er_pos_pct <- round(100 * sum(clinical_clean$er_status_ihc == "Positive", na.rm = TRUE) / n_clean, 1)
+# Use patients with available ER data as denominator (matching Table 1A)
+n_er_available <- sum(!is.na(clinical_clean$er_status_ihc))
+er_pos_pct <- round(100 * sum(clinical_clean$er_status_ihc == "Positive", na.rm = TRUE) / n_er_available, 1)
 ```
 
 
@@ -412,25 +358,23 @@ table1b <- clinical_clean %>%
 table1b
 ```
 
-Table 1A summarises clinical and demographic characteristics stratified by PAM50 subtype. The cohort had median age `r round(median_age)` years, with `r er_pos_pct`% ER-positive tumours. Treatment patterns varied by subtype, with chemotherapy more common in Basal-like compared to Luminal A subtypes (p < 0.001).
+Table 1A summarises clinical and demographic characteristics stratified by PAM50 subtype. The analytical cohort had a median age of `r round(median_age)` years, with `r er_pos_pct`% ER-positive tumours (among those with available ER data). Treatment patterns varied by subtype, with chemotherapy more common in Basal-like compared to Luminal A subtypes (p < 0.001), as expected given the more aggressive biology of Basal-like disease.
 
-Table 1B shows the distribution of IntClust groups within PAM50 subtypes. Notably, IntClust groups 2, 3, 6, 7, 8, and 9 are predominantly classified as Luminal by PAM50, yet show distinct survival outcomes (addressed in later sections). This demonstrates the potential for hidden heterogeneity within PAM50 classifications.
+Table 1B shows the distribution of IntClust groups within PAM50 subtypes. What stands out here is that IntClust groups 2, 3, 6, 7, 8, and 9 are all predominantly classified as Luminal by PAM50, yet as I show in later sections, they have very different survival outcomes. This cross-tabulation provides the first indication that PAM50 Luminal classification masks substantial molecular and prognostic diversity.
 
 ## 3.2 Question 1: Gene Expression Analysis
 
 ### Rationale for Gene Selection
 
-We focused on three genes with established prognostic and therapeutic significance that highlight gaps in current PAM50-based patient communication:
+I focused on three genes with established prognostic and therapeutic significance that highlight gaps in PAM50-based classification:
 
-**ESR1 (Estrogen Receptor):** Defines ER-positive status, the primary biomarker communicated to patients. High ESR1 expression guides hormone therapy decisions and is associated with favourable prognosis. This represents the baseline information patients currently receive—being told they are "ER-positive" with "good prognosis" Luminal breast cancer.
+**ESR1 (Estrogen Receptor):** Defines ER-positive status, the primary biomarker communicated to patients. High ESR1 expression guides hormone therapy decisions.
 
-**CCND1 (Cyclin D1):** Defines IntClust 2 through 11q13 amplification. The original METABRIC study identified IntClust 2 as a "particularly high-risk subgroup" with significantly elevated hazard ratio (HR = 3.62, 95% CI: 1.91–6.88) compared to other Luminal groups (Curtis et al. 2012). CCND1 drives cell cycle progression and confers resistance to endocrine therapy. Despite receiving a PAM50 Luminal classification suggesting favourable prognosis, patients with CCND1-amplified tumours have substantially worse outcomes. CDK4/6 inhibitors (palbociclib, ribociclib, abemaciclib) targeting CCND1-driven proliferation are FDA-approved for ER-positive breast cancer but are not routinely discussed with all Luminal patients at diagnosis.
+**CCND1 (Cyclin D1):** Defines IntClust 2 through 11q13 amplification. The original METABRIC study identified IntClust 2 as a high-risk subgroup (HR = 3.62, 95% CI: 1.91–6.88) compared to other Luminal groups (Curtis et al. 2012). CDK4/6 inhibitors targeting CCND1-driven proliferation are FDA-approved for ER-positive breast cancer (Turner et al. 2015; Finn et al. 2016).
 
-**FGFR1 (Fibroblast Growth Factor Receptor 1):** Defines IntClust 6 through 8p12 amplification. While the METABRIC study classified IntClust 6 as "intermediate prognosis," this group still demonstrates worse outcomes compared to IntClust 3, 7, and 8, which were described as having "favourable outcome" profiles (Curtis et al. 2012). FGFR1 amplification drives growth factor signalling and endocrine resistance within ER-positive disease.
+**FGFR1 (Fibroblast Growth Factor Receptor 1):** Defines IntClust 6 through 8p12 amplification. While classified as intermediate prognosis in the original study, IntClust 6 has worse outcomes than the favourable-outcome groups (IntClust 3, 7, 8) (Curtis et al. 2012).
 
-**Risk Group Classification:** For this analysis, we classified IntClust 2 and IntClust 6 as "high-risk" groups, while IntClust 3, 7, and 8 were classified as "low-risk." Although the original METABRIC study described IntClust 6 as "intermediate prognosis," we grouped it with IntClust 2 for two reasons. First, both groups demonstrate clinically meaningful worse outcomes compared to the favourable-prognosis IntClust 3, 7, and 8 groups—outcomes that are not reflected in standard PAM50 Luminal classification. Second, both groups are defined by specific gene amplifications (CCND1 and FGFR1 respectively) that have therapeutic implications patients are not routinely informed about. From a patient communication perspective, both groups represent "hidden" high-risk populations within the Luminal classification who may benefit from more detailed prognostic information and discussion of targeted therapy options.
-
-These three genes illustrate a critical communication gap: ESR1 represents what patients currently know about their cancer, while CCND1 and FGFR1 represent clinically actionable information they typically do not receive—information that significantly affects both prognosis and treatment options.
+I classified IntClust 2 and 6 as "high-risk" and IntClust 3, 7, and 8 as "low-risk" based on both the original METABRIC survival data and their distinct genomic drivers.
 
 ```{r q1-check-genes, include=FALSE}
 # Check genes available
@@ -539,9 +483,7 @@ total_variance <- round(sum(variance_explained), 1)
 n_pca_genes <- length(pca_genes)
 ```
 
-Principal component analysis using therapeutically relevant genes explained `r total_variance`% of variance (PC1: `r pc1_variance`%, PC2: `r pc2_variance`%) (Figure 1A). While substantial overlap exists between IntClust groups, high-risk Luminal subgroups with specific genomic amplifications (IntClust 2 with CCND1, IntClust 6 with FGFR1) occupy distinct regions compared to low-risk Luminal groups.
-
-The modest separation is expected and biologically meaningful. IntClust integrates copy number alterations—structural genomic events—with expression data. These alterations may exert effects through mechanisms beyond simple expression changes. Patients from all three groups shown are classified as "Luminal" by PAM50 and receive similar prognostic communication, despite molecular differences representing distinct therapeutic vulnerabilities.
+Principal component analysis using therapeutically relevant genes explained `r total_variance`% of variance (PC1: `r pc1_variance`%, PC2: `r pc2_variance`%) (Figure 1A). While substantial overlap exists between IntClust groups, the high-risk Luminal subgroups (IntClust 2 with CCND1, IntClust 6 with FGFR1) occupy partly distinct regions compared to low-risk groups. The modest separation is expected — IntClust integrates copy number alterations which may exert effects beyond simple expression changes. It is worth noting that this PCA uses a targeted set of therapeutically relevant genes rather than the full transcriptome, so it serves as a visualisation of known expression differences rather than an unbiased discovery tool.
 
 ### Expression Heatmap
 ```{r q1-fig1b-prep, include=FALSE}
@@ -621,13 +563,7 @@ ggsave("output/Figure1B_Heatmap_Communication_Genes.png",
        width = 10, height = 4, dpi = 300)
 ```
 
-The heatmap displays expression of three therapeutically relevant genes across `r n_heatmap_patients` PAM50 Luminal patients (Figure 1B). All samples shown received "Luminal breast cancer" diagnosis, yet molecular patterns differ:
-
-**ESR1:** Consistently elevated across all Luminal IntClust groups, confirming ER-positivity. This uniform pattern reflects information patients currently receive.
-
-**CCND1:** Elevated specifically in IntClust 2 samples, reflecting 11q13 amplification. This represents the first "hidden high-risk" group: patients told they have good-prognosis Luminal cancer despite harboring genomic amplification associated with worse outcomes.
-
-**FGFR1:** Elevated in IntClust 6 samples, driven by 8p12 amplification. This represents the second "hidden high-risk" group.
+The heatmap displays expression of three therapeutically relevant genes across `r n_heatmap_patients` PAM50 Luminal patients (Figure 1B). All samples shown received a "Luminal breast cancer" diagnosis, yet the molecular patterns differ substantially. ESR1 is consistently elevated across all groups, confirming shared ER-positivity. However, CCND1 is specifically elevated in IntClust 2 (reflecting 11q13 amplification) and FGFR1 in IntClust 6 (reflecting 8p12 amplification) — these are the two hidden high-risk groups within PAM50 Luminal disease.
 
 ### Statistical Comparison
 ```{r q1-fig1c-boxplots, fig.width=10, fig.height=4.5}
@@ -726,9 +662,7 @@ low_risk_n <- sum(heatmap_clinical$risk_label == "Low-risk")
 comm_gap_pct <- round(100 * high_risk_n / luminal_total, 1)
 ```
 
-Statistical analysis confirmed distinct expression patterns between risk groups. ESR1 showed no significant difference (p = `r format.pval(esr1_pval, digits = 2)`), confirming uniform ER-positivity across all Luminal patients regardless of IntClust classification. In contrast, CCND1 (p = `r format.pval(ccnd1_pval, digits = 2)`) and FGFR1 (p = `r format.pval(fgfr1_pval, digits = 2)`) showed significant elevation in the high-risk group.
-
-**Communication Gap:** Of `r luminal_total` PAM50 Luminal patients, `r high_risk_n` (`r comm_gap_pct`%) belong to hidden high-risk groups: IntClust 2 (CCND1-amplified) or IntClust 6 (FGFR1-amplified). These patients receive standard 'good prognosis' Luminal messaging despite harboring distinct molecular features—CCND1 amplification suggesting CDK4/6 inhibitor relevance, or FGFR1 amplification suggesting potential FGFR inhibitor sensitivity—that are not communicated.
+Statistical analysis confirmed distinct expression patterns between risk groups (Figure 1C). ESR1 showed no significant difference (p = `r format.pval(esr1_pval, digits = 2)`), confirming uniform ER-positivity regardless of IntClust classification. In contrast, CCND1 (p = `r format.pval(ccnd1_pval, digits = 2)`) and FGFR1 (p = `r format.pval(fgfr1_pval, digits = 2)`) were significantly elevated in the high-risk group. Of `r luminal_total` PAM50 Luminal patients, `r high_risk_n` (`r comm_gap_pct`%) belong to these hidden high-risk IntClust groups, harbouring molecular features with therapeutic implications (CDK4/6 inhibitors for CCND1, FGFR inhibitors for FGFR1) that are not conveyed under standard PAM50 classification.
 
 ## 3.3 Question 2: Mutation Analysis
 
@@ -739,24 +673,15 @@ Statistical analysis confirmed distinct expression patterns between risk groups.
 # ============================================
 
 # Load MAF file
-maf <- read.maf(maf = "data/metabric_data_mutations.maf")
+maf <- read.maf(maf = "data/metabric_data_mutations.maf", verbose = FALSE)
 
-# Get summary statistics
+# Get summary statistics (full MAF - used only for gene summary and oncoplot)
 maf_summary <- getSampleSummary(maf)
 gene_summary <- getGeneSummary(maf)
 
-# Overall mutation statistics
-total_samples_with_mutations <- nrow(maf_summary)
-median_mutations <- median(maf_summary$total)
-mean_mutations <- mean(maf_summary$total)
-range_mutations <- range(maf_summary$total)
-
-# Store for inline text
-n_maf_total <- total_samples_with_mutations
-median_burden <- median_mutations
-mean_burden <- mean_mutations
-min_mutations <- range_mutations[1]
-max_mutations <- range_mutations[2]
+# NOTE: Burden statistics are calculated AFTER matching to clinical data
+# (see q2-match-clinical chunk below) to ensure n, median, mean, and range
+# all refer to the same 1860-patient matched dataset.
 ```
 
 ```{r q2-match-clinical, include=FALSE}
@@ -786,14 +711,26 @@ clinical_annotation <- clinical_matched %>%
 
 # Store for inline text
 n_matched_maf <- length(matched_samples)
+
+# Calculate mutation burden statistics from MATCHED patients only
+# This ensures n, median, mean, and range all describe the same 1860-patient group
+maf_summary_matched <- getSampleSummary(maf_matched)
+
+total_samples_with_mutations <- nrow(maf_summary_matched)
+median_mutations  <- median(maf_summary_matched$total)
+mean_mutations    <- mean(maf_summary_matched$total)
+range_mutations   <- range(maf_summary_matched$total)
+
+median_burden  <- median_mutations
+mean_burden    <- mean_mutations
+min_mutations  <- range_mutations[1]
+max_mutations  <- range_mutations[2]
 ```
 
-```{r q2-fig2a-oncoplot-clean, fig.width=12, fig.height=9}
+```{r q2-fig2a-oncoplot-clean, fig.width=12, fig.height=9, results='hide'}
 # ============================================
 # FIGURE 2A: Clean oncoplot for publication
 # ============================================
-
-library(maftools)
 
 # Ensure output directory exists
 if (!dir.exists("output")) dir.create("output")
@@ -836,15 +773,15 @@ pik3ca_freq <- round(100 * top_genes$MutatedSamples[top_genes$Hugo_Symbol == "PI
 tp53_freq <- round(100 * top_genes$MutatedSamples[top_genes$Hugo_Symbol == "TP53"] / n_matched_maf, 0)
 ```
 
-Figure 2A: Mutation Landscape of Top 20 Genes in METABRIC Cohort. Oncoplot showing mutation profiles across `r n_matched_maf` patients. Top panel: tumor mutation burden (total mutations per patient). Main panel: mutation status for top 20 genes (rows) across patients (columns). Colors indicate mutation type: green (missense), red (nonsense), blue (frameshift deletion), brown (in-frame indel), orange (splice site), black (multiple mutations). Right panel: mutation frequency. PIK3CA (`r pik3ca_freq`%) and TP53 (`r tp53_freq`%) are the most frequently mutated genes, representing key drivers in PI3K pathway activation and genomic instability, respectively.
+Figure 2A: Mutation Landscape of Top 20 Genes in METABRIC Cohort. Oncoplot showing mutation profiles across `r n_matched_maf` patients (whole matched cohort). Top panel: tumor mutation burden (total mutations per patient). Main panel: mutation status for top 20 genes (rows) across patients (columns). Colors indicate mutation type: green (missense), red (nonsense), blue (frameshift deletion), brown (in-frame indel), orange (splice site), black (multiple mutations). Right panel: mutation frequency across the whole cohort. PIK3CA (`r pik3ca_freq`%) and TP53 (`r tp53_freq`%) are the most frequently mutated genes, representing key drivers in PI3K pathway activation and genomic instability, respectively.
 
 ```{r q2-fig2b-mutation-burden, fig.width=8, fig.height=5}
 # ============================================
 # FIGURE 2B: Mutation burden distribution
 # ============================================
 
-# Add mutation burden to clinical data
-mutation_burden <- maf_summary %>%
+# Add mutation burden to clinical data (use matched summary for consistency)
+mutation_burden <- maf_summary_matched %>%
   select(Tumor_Sample_Barcode, total) %>%
   rename(patient_id = Tumor_Sample_Barcode,
          mutation_count = total)
@@ -1093,29 +1030,27 @@ mutation_summary_table <- top10_summary %>%
 write_csv(mutation_summary_table, "output/Table_Top_Mutated_Genes.csv")
 ```
 
-## Results: Mutation Analysis
-
 ### Overall Mutation Landscape
 
-The METABRIC cohort (n = `r n_matched_maf` patients with both mutation and clinical data) exhibited a median mutation burden of `r median_burden` mutations per sample (mean: `r round(mean_burden, 1)`, range: `r min_mutations`-`r max_mutations`) (Figure 2B). The distribution showed right skewing, with most patients having fewer than 50 mutations and a small subset of hypermutated samples (greater than 100 mutations).
+The METABRIC cohort (n = `r n_matched_maf` patients with both mutation and clinical data) 
+exhibited a median mutation burden of `r median_burden` mutations per sample 
+(mean: `r round(mean_burden, 1)`, range: `r min_mutations`-`r max_mutations`) (Figure 2B), 
+with right skewing indicating most patients have low mutation burden and a small number 
+of outliers with substantially higher counts (maximum: `r max_mutations` mutations).
 
-The most frequently mutated genes were TP53 (`r tp53_overall_pct`% of Luminal patients), PIK3CA (`r pik3ca_overall_pct`%), and other established breast cancer drivers (Figure 2A). These genes represent key oncogenic pathways: TP53 (tumor suppressor, genomic instability), PIK3CA (PI3K pathway activation, cell survival), GATA3 and FOXA1 (luminal differentiation), CDH1 (cell adhesion), and MAP3K1 (MAPK signaling).
+The most frequently mutated genes among Luminal-enriched IntClust groups (2, 3, 6, 7, 8, 9) were TP53 (`r tp53_overall_pct`%) and PIK3CA (`r pik3ca_overall_pct`%) (Figure 2E), representing key oncogenic pathways: TP53 (tumour suppressor, genomic instability) and PIK3CA (PI3K pathway activation, cell survival). Note that whole-cohort frequencies differ from these Luminal-group figures (Figure 2A).
 
-### Mutation Burden by Molecular Subtype
+### Mutation Burden and Subtype-Specific Patterns
 
-Mutation burden differed significantly by PAM50 subtype (Kruskal-Wallis p < 0.001, Figure 2C). Basal-like tumors showed the highest median mutation burden, followed by HER2-enriched, Luminal B, and Luminal A subtypes, consistent with the genomic instability characteristic of more aggressive disease.
+Mutation burden differed significantly by PAM50 subtype (Kruskal-Wallis p < 0.001, Figure 2C), with Basal-like tumours showing highest burden, consistent with genomic instability characteristic of aggressive disease. Among Luminal-enriched IntClust groups, differences were less pronounced (Figure 2D), suggesting mutation burden alone does not fully explain IntClust-based risk stratification.
 
-Among Luminal-enriched IntClust groups, mutation burden showed variation (Figure 2D), though differences were less pronounced than across PAM50 subtypes. This suggests that mutation burden alone does not fully explain IntClust-based risk stratification, supporting the importance of specific driver mutations and copy number alterations.
+**TP53 Mutations:** TP53 mutation frequency differed significantly across IntClust groups (chi-square p = `r format.pval(tp53_pval, digits=3)`) (Figure 2E). High-risk IntClust groups (2 and 9) showed elevated TP53 frequencies, reflecting the association between TP53 loss and genomic instability.
 
-### Subtype-Specific Mutation Patterns
-
-**TP53 Mutations:** TP53 mutation frequency differed significantly across IntClust groups (chi-square p = `r format.pval(tp53_pval, digits=3)`) (Figure 2E). High-risk IntClust groups (2 and 9) showed elevated TP53 mutation frequencies compared to low-risk groups (3, 7, 8), reflecting the association between TP53 loss and genomic instability. TP53 mutations mark poor-prognosis tumors across molecular subtypes and are associated with resistance to multiple therapies.
-
-**PIK3CA Mutations:** PIK3CA mutations showed `r ifelse(pik3ca_pval < 0.05, "significant", "variable")` patterns across IntClust groups (chi-square p = `r format.pval(pik3ca_pval, digits=3)`). PIK3CA mutations were more frequent in low-risk Luminal IntClust groups, consistent with their association with ER-positive, less aggressive disease. PIK3CA mutations activate the PI3K/AKT pathway and may confer endocrine therapy resistance, representing potential targets for PI3K inhibitors.
+**PIK3CA Mutations:** PIK3CA mutations showed `r ifelse(pik3ca_pval < 0.05, "significant", "variable")` patterns across IntClust groups (chi-square p = `r format.pval(pik3ca_pval, digits=3)`), with higher frequency in low-risk Luminal groups, consistent with their association with ER-positive, less aggressive disease. PIK3CA mutations represent potential targets for PI3K inhibitors (André et al. 2019).
 
 ### Integration of Mutation and Copy Number Data
 
-The mutation patterns demonstrate complementary information to copy number-based IntClust classification. IntClust 2 is defined by CCND1 amplification (copy number) and shows elevated TP53 mutations; IntClust 6 is defined by FGFR1 amplification and shows moderate mutation burden. This integration of mutation and copy number data provides comprehensive genomic characterization: IntClust groups harbor distinct driver gene alterations (TP53 mutations in high-risk groups, PIK3CA mutations in low-risk groups) that complement their copy number profiles, demonstrating that multi-dimensional molecular data capture orthogonal biological information for patient stratification.
+These mutation patterns complement the copy number-based IntClust classification. The fact that IntClust groups harbour distinct driver gene mutations (TP53 in high-risk groups, PIK3CA in low-risk groups) alongside their defining copy number profiles shows that different types of molecular data capture different aspects of tumour biology — which is why integrated multi-dimensional profiling adds value over any single data type.
 
 ## 3.4 Question 3: Clinical Integration
 
@@ -1156,8 +1091,6 @@ n_luminal_total <- nrow(luminal_patients)
 # ============================================
 # FIGURE 3A: Survival by IntClust risk group
 # ============================================
-library(survival)
-library(survminer)
 
 # Create survival object
 surv_obj <- Surv(time = clinical_clean$os_months, 
@@ -1262,33 +1195,25 @@ er_low_death_rate <- er_summary$death_rate[er_summary$intclust_risk == "Low-risk
 er_survival_diff <- abs(er_summary$median_survival[1] - er_summary$median_survival[2])
 ```
 
-## Results: Clinical Integration
-
 ### IntClust Stratification Adds Prognostic Value
 
 To assess whether IntClust classification provides prognostic information beyond standard clinical variables, we examined survival outcomes stratified by IntClust risk groups across the full cohort and within clinically defined subgroups.
 
 **Overall Survival by IntClust Risk:** IntClust risk groups showed significantly different survival outcomes (log-rank p = `r format.pval(logrank_pval_overall, digits=3)`) (Figure 3A). Low-risk IntClust groups (3, 7, 8) demonstrated favorable survival, while high-risk groups (2, 6, 9) showed substantially worse outcomes. This validates IntClust's prognostic utility at the population level.
 
-**Stratification Within ER-Positive Patients:** Critically, IntClust risk stratification remained significant even within ER-positive patients (log-rank p = `r format.pval(logrank_er_pval, digits=3)`) (Figure 3B). Among the `r n_er_positive` ER-positive patients analyzed, high-risk IntClust groups showed `r er_high_death_rate`% mortality compared to `r er_low_death_rate`% in low-risk groups, with a median survival difference of approximately `r round(er_survival_diff)` months.
+**Stratification Within ER-Positive Patients:** Importantly, IntClust risk stratification remained significant even within ER-positive patients (log-rank p = `r format.pval(logrank_er_pval, digits=3)`) (Figure 3B). Among the `r n_er_positive` ER-positive patients analyzed, high-risk IntClust groups showed `r er_high_death_rate`% mortality compared to `r er_low_death_rate`% in low-risk groups, with a median survival difference of approximately `r round(er_survival_diff)` months.
 
 This finding demonstrates that IntClust classification captures prognostic heterogeneity not explained by ER status alone. All ER-positive patients currently receive hormone therapy and broadly favorable prognostic messaging, yet IntClust identifies a substantial subset (`r hidden_risk_pct`% of Luminal patients) with high-risk molecular profiles and worse outcomes. This represents a communication gap: patients classified as "Luminal" or "ER-positive" receive uniform prognostic information despite molecular heterogeneity that significantly affects survival.
 
 ### Robust vs. Uncertain Patterns
 
-**Robust Findings:** 
-1. IntClust groups show consistent survival differences across multiple analyses
-2. TP53 mutation status associates with poor prognosis independent of subtype
-3. Specific genomic amplifications (CCND1, FGFR1) identify high-risk subgroups within PAM50 Luminal classification
+Robust findings include consistent IntClust survival differences across analyses, TP53 mutation association with poor prognosis, and specific genomic amplifications (CCND1, FGFR1) identifying high-risk subgroups within PAM50 Luminal classification. Less certain patterns include mutation burden differences (substantial overlap between groups), limited statistical power for smaller IntClust groups, and the optimal approach for communicating multi-dimensional genomic data to patients.
 
-**Uncertain Patterns:**
-1. Mutation burden shows subtype differences but with substantial overlap
-2. Some IntClust groups have small sample sizes limiting statistical power
-3. The optimal way to communicate multi-dimensional genomic data to patients remains unclear
-
-**Conclusion:** Molecular classification integrating copy number alterations (IntClust) stratifies patients beyond clinical variables and expression-based PAM50 classification. This integration demonstrates that comprehensive genomic profiling captures prognostically relevant information not conveyed in current PAM50-based patient communication frameworks.
+**Summary:** Molecular classification integrating copy number alterations (IntClust) stratifies patients beyond clinical variables and expression-based PAM50 classification. This means comprehensive genomic profiling captures risk information that current classification systems do not communicate to patients.
 
 ## 3.5 Extension: Hidden Heterogeneity in Luminal Patients
+
+The gene expression analysis (Section 3.2) identified IntClust 2 and 6 as hidden high-risk groups defined by CCND1 and FGFR1 amplifications. For this extension, we additionally include **IntClust 9**, which the original METABRIC study identified as having poor survival driven by high genomic instability rather than a single amplification event (Curtis et al. 2012). While IntClust 9 lacks a single targetable amplification, its poor prognosis within PAM50 Luminal patients represents an additional hidden high-risk population receiving standard favourable messaging.
 
 ```{r extension-luminal-subset, include=FALSE}
 # ============================================
@@ -1370,7 +1295,7 @@ surv_plot_luminal <- ggsurvplot(
   title = "Figure 4: Hidden Prognostic Heterogeneity Within PAM50 Luminal Breast Cancer",
   subtitle = paste0("All ", n_luminal, " patients classified as PAM50 Luminal (LumA or LumB)"),
   legend.title = "IntClust Risk",
-  legend.labs = c("Hidden High-Risk\n(IC 2,6,9)", "Standard Luminal\n(IC 3,7,8)"),
+  legend.labs = c("Hidden High-Risk\n(IC 2,6,9)", "Standard Luminal\n(All other IC)"),
   palette = c("#E74C3C", "#3498DB"),
   ggtheme = theme_classic(),
   font.main = 13,
@@ -1395,23 +1320,28 @@ luminal_surv_summary <- luminal_analysis %>%
     pct_alive_5yr = round(100 * alive_at_5yr / n, 1)
   )
 
-# Calculate survival difference
-death_rate_diff <- luminal_surv_summary$death_rate_pct[2] - 
-                  luminal_surv_summary$death_rate_pct[1]
-survival_diff <- luminal_surv_summary$median_survival_months[1] - 
-                luminal_surv_summary$median_survival_months[2]
+# Calculate survival difference (use explicit names, not positional indexing)
+hidden_stats <- luminal_surv_summary %>% filter(luminal_risk_binary == "Hidden High-Risk")
+standard_stats <- luminal_surv_summary %>% filter(luminal_risk_binary == "Standard Luminal")
+
+death_rate_diff <- hidden_stats$death_rate_pct - standard_stats$death_rate_pct
+survival_diff <- standard_stats$median_survival_months - hidden_stats$median_survival_months
 
 # Store for inline use
-luminal_hidden_death_rate <- luminal_surv_summary$death_rate_pct[luminal_surv_summary$luminal_risk_binary == "Hidden High-Risk"]
-luminal_standard_death_rate <- luminal_surv_summary$death_rate_pct[luminal_surv_summary$luminal_risk_binary == "Standard Luminal"]
+luminal_hidden_death_rate <- hidden_stats$death_rate_pct
+luminal_standard_death_rate <- standard_stats$death_rate_pct
 ```
+
+### Prevalence and Survival Impact
+
+Of `r n_luminal` PAM50 Luminal patients, `r n_hidden_risk` (`r pct_hidden_risk`%) belonged to high-risk IntClust groups: IntClust 2 (n = `r n_ic2`, `r pct_ic2`%), IntClust 6 (n = `r n_ic6`, `r pct_ic6`%), and IntClust 9 (n = `r n_ic9`, `r pct_ic9`%). Figure 4 shows that these hidden high-risk patients had significantly worse overall survival compared to standard Luminal patients (log-rank p = `r format.pval(logrank_luminal_pval, digits=3)`), with a mortality rate of `r luminal_hidden_death_rate`% versus `r luminal_standard_death_rate`% and a median survival difference of approximately `r round(survival_diff)` months. This is a substantial gap given that all patients in both groups are classified as PAM50 Luminal and would typically receive similar prognostic messaging.
+
+### Clinical Characteristics Comparison
 
 ```{r extension-clinical-comparison}
 # ============================================
 # EXTENSION: Clinical characteristics comparison
 # ============================================
-
-library(gtsummary)
 
 # Compare clinical characteristics
 clinical_comparison <- luminal_analysis %>%
@@ -1455,6 +1385,10 @@ clinical_comparison <- luminal_analysis %>%
 
 clinical_comparison
 ```
+
+The clinical comparison table above shows that standard clinical variables—age, menopausal status, ER status, and treatment received—do not meaningfully distinguish hidden high-risk from standard Luminal patients. This is an important finding: it means clinicians relying on routine clinical features alone would have no way of identifying these high-risk patients without genomic profiling that captures copy number alterations.
+
+### Molecular Drivers
 
 ```{r extension-molecular-drivers, fig.width=10, fig.height=4}
 # ============================================
@@ -1513,29 +1447,15 @@ if (exists("expression_matrix") && all(c("ESR1", "CCND1", "FGFR1") %in% colnames
 }
 ```
 
-# 4. Summary of Key Findings
-
-This analysis of `r n_clean` METABRIC patients demonstrates that IntClust classification reveals clinically significant prognostic heterogeneity within PAM50 Luminal breast cancer. Among `r n_luminal` PAM50 Luminal patients:
-
-- **`r pct_hidden_risk`%** (n = `r n_hidden_risk`) belong to hidden high-risk IntClust groups (2, 6, or 9)
-  - IntClust 2 (CCND1 amplification): `r n_ic2` patients (`r pct_ic2`%)
-  - IntClust 6 (FGFR1 amplification): `r n_ic6` patients (`r pct_ic6`%)
-  - IntClust 9 (high genomic instability): `r n_ic9` patients (`r pct_ic9`%)
-
-- **Survival differences** between hidden high-risk and standard Luminal patients:
-  - Death rate: `r luminal_hidden_death_rate`% vs `r luminal_standard_death_rate`% (difference: `r round(abs(death_rate_diff), 1)` percentage points)
-  - Median survival difference: approximately `r round(abs(survival_diff))` months
-  - Log-rank p-value: `r format.pval(logrank_luminal_pval, digits=3)`
-
-All patients in both groups receive identical "Luminal = favorable prognosis" messaging despite these substantial differences in outcomes.
+The molecular drivers plot confirms that while ESR1 expression remains uniformly high across both groups (consistent with their shared Luminal classification), CCND1 and FGFR1 are significantly elevated in the hidden high-risk group. These represent the specific genomic amplifications driving the poor prognosis—and importantly, both have therapeutic implications (CDK4/6 inhibitors for CCND1, FGFR inhibitors for FGFR1) that are not discussed with patients under current PAM50-only classification.
 
 ---
 
-# 5. Discussion
+# 4. Discussion
 
 ## Summary of Key Findings
 
-This analysis of the METABRIC breast cancer cohort demonstrates that IntClust classification reveals clinically significant prognostic heterogeneity within PAM50 Luminal breast cancer subtypes. Approximately `r pct_hidden_risk`% of patients classified as PAM50 Luminal (n = `r n_hidden_risk` of `r n_luminal`) harbour high-risk IntClust profiles characterised by CCND1 amplification (IntClust 2), FGFR1 amplification (IntClust 6), or mixed high-risk features (IntClust 9). These patients showed `r round(death_rate_diff, 1)` percentage points higher mortality and approximately `r round(abs(survival_diff))` months worse median survival compared to standard Luminal patients, despite receiving identical "favourable prognosis" messaging.
+This analysis of the METABRIC breast cancer cohort demonstrates that IntClust classification reveals clinically significant prognostic heterogeneity within PAM50 Luminal breast cancer subtypes. Approximately `r pct_hidden_risk`% of patients classified as PAM50 Luminal (n = `r n_hidden_risk` of `r n_luminal`) harbour high-risk IntClust profiles characterised by CCND1 amplification (IntClust 2), FGFR1 amplification (IntClust 6), or mixed high-risk features (IntClust 9). These patients showed `r round(death_rate_diff, 1)` percentage points higher mortality and approximately `r round(survival_diff)` months worse median survival compared to standard Luminal patients, despite receiving identical "favourable prognosis" messaging.
 
 ## Comparison with Existing Literature
 
@@ -1545,11 +1465,11 @@ The molecular drivers identified—CCND1 and FGFR1 amplifications—have establi
 
 ## Strengths
 
-This analysis has several strengths. First, METABRIC represents one of the largest, most comprehensively characterised breast cancer cohorts, with integrated clinical, genomic, and transcriptomic data enabling multi-modal analysis. Second, our analytical approach systematically addressed three mandatory analytical questions before extending to the patient communication research question, ensuring findings are grounded in robust molecular characterisation. Third, we employed appropriate statistical methods throughout, including non-parametric tests for expression comparisons and log-rank tests for survival analysis. Fourth, all code is documented and reproducible, with relative file paths and automated package installation.
+METABRIC represents one of the largest, most well-characterised breast cancer cohorts with integrated clinical, genomic, and transcriptomic data. Our analytical approach systematically addressed three mandatory questions before extending to the patient communication research question. We employed appropriate statistical methods throughout, including non-parametric tests for expression comparisons and log-rank tests for survival analysis. All code is documented and reproducible with relative file paths and automated package installation.
 
 ## Limitations
 
-Several limitations should be considered. First, METABRIC samples were collected between 1977 and 2005, predating contemporary treatments including CDK4/6 inhibitors and modern chemotherapy regimens. Treatment patterns and outcomes may differ in current clinical practice. Second, this is a retrospective, single-cohort analysis; prospective validation in independent cohorts would strengthen conclusions. Third, IntClust classification requires comprehensive genomic profiling not routinely performed in clinical practice, limiting immediate clinical applicability. Fourth, the analysis cannot establish causal relationships between genomic features and patient outcomes.
+Several limitations should be considered. First, METABRIC samples were collected between 1977 and 2005, predating contemporary treatments including CDK4/6 inhibitors and modern chemotherapy regimens. Treatment patterns and outcomes may differ in current clinical practice. Second, this is a retrospective, single-cohort analysis from UK and Canadian centres; prospective validation in independent and more geographically diverse cohorts would strengthen conclusions. Third, IntClust classification requires comprehensive genomic profiling not routinely performed in clinical practice, limiting immediate clinical applicability. Fourth, the analysis cannot establish causal relationships between genomic features and patient outcomes. Fifth, the survival endpoint is overall survival rather than breast cancer-specific survival; some deaths in this long follow-up cohort may be unrelated to cancer, potentially attenuating true differences between risk groups. Sixth, our survival analyses are univariate (Kaplan-Meier with log-rank tests); multivariate Cox regression adjusting for confounders such as age, treatment received, and tumour grade would strengthen the claim that IntClust provides independent prognostic value. Finally, multiple statistical comparisons were performed across sections without formal correction for multiple testing, and results should be interpreted accordingly.
 
 ## Clinical Implications
 
@@ -1561,17 +1481,17 @@ Future work should include: (1) prospective validation of IntClust-based risk st
 
 ---
 
-# 6. Conclusion
+# 5. Conclusion
 
-This analysis demonstrates that approximately one in five PAM50 Luminal breast cancer patients harbour high-risk molecular features not captured by standard classification systems. IntClust groups 2, 6, and 9—characterised by CCND1 amplification, FGFR1 amplification, and high genomic instability respectively—showed significantly worse survival outcomes despite patients receiving uniform "favourable prognosis" messaging based on their Luminal classification. 
+This analysis demonstrates that approximately one in five PAM50 Luminal breast cancer patients harbour high-risk molecular features not captured by standard classification. IntClust groups 2, 6, and 9 showed significantly worse survival outcomes despite patients receiving uniform "favourable prognosis" messaging based on their Luminal classification. 
 
-The survival difference of `r round(death_rate_diff, 1)` percentage points between hidden high-risk and standard Luminal patients is clinically meaningful and comparable to differences between established prognostic categories. Critically, standard clinical variables (age, menopausal status, ER/HER2 status) could not identify this high-risk subset, demonstrating that molecular profiling capturing copy number alterations provides orthogonal prognostic information.
+The survival difference of `r round(death_rate_diff, 1)` percentage points between hidden high-risk and standard Luminal patients is clinically meaningful. Standard clinical variables could not identify this high-risk subset, demonstrating that molecular profiling capturing copy number alterations provides additional prognostic information not captured by expression-based classification or routine clinical assessment.
 
-These findings support the development of enhanced patient communication frameworks that incorporate comprehensive genomic data. While IntClust testing is not yet routine clinical practice, this proof-of-concept analysis demonstrates that patients currently receiving uniform prognostic messaging harbour heterogeneous molecular profiles with significantly different outcomes and potential therapeutic implications.
+These findings support the case for incorporating comprehensive genomic data into patient discussions about prognosis, so that patients with heterogeneous molecular profiles receive more accurate risk information.
 
 ---
 
-# 7. References
+# 6. References
 
 Ali, H.R., Rueda, O.M., Chin, S.F., Curtis, C., Dunning, M.J., Aparicio, S.A. and Caldas, C. (2014) 'Genome-driven integrated classification of breast cancer validated in over 7,500 samples', *Genome Biology*, 15(8), p. 431. https://doi.org/10.1186/s13059-014-0431-1
 
@@ -1616,9 +1536,3 @@ Turner, N.C., Ro, J., André, F., Loi, S., Verma, S., Iwata, H., Harbeck, N., Lo
 Wickham, H., Averick, M., Bryan, J., Chang, W., McGowan, L.D., François, R., Grolemund, G., Hayes, A., Henry, L., Hester, J., Kuhn, M., Pedersen, T.L., Miller, E., Bache, S.M., Müller, K., Ooms, J., Robinson, D., Seidel, D.P., Spinu, V., Takahashi, K., Vaughan, D., Wilke, C., Woo, K. and Yutani, H. (2019) 'Welcome to the tidyverse', *Journal of Open Source Software*, 4(43), p. 1686. https://doi.org/10.21105/joss.01686
 
 ---
-
-# Session Information
-```{r session-info}
-sessionInfo()
-```
-
