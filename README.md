@@ -1,13 +1,16 @@
-# HDS Module 3 — Hanna Hong
+# HDS Module 3 - Hanna Hong
+
+All files are available at: https://github.com/Eclips-hash/module3
+Open Module3.Rproj in RStudio and knit the Rmd. All packages install automatically. All file paths are relative.
 
 ## Files
 
-- `HDS_MM_HannaHong_2602_Cover.docx` — Assignment cover sheet
-- `Module3.Rproj` — RStudio project file
-- `HDS_MM_HannaHong_2602.Rmd` — R Markdown 
-- `HDS_MM_HannaHong_2602.html` — Knitted HTML
-- `data/metabric_data_clinical_patient.csv` — Clinical data
-- `data/metabric_data_mutations.maf` — Mutation data (MAF format)
+- `HDS_MM_HannaHong_2602_Cover.docx`: Assignment cover sheet
+- `Module3.Rproj` : RStudio project file
+- `HDS_MM_HannaHong_2602.Rmd` : R Markdown 
+- `HDS_MM_HannaHong_2602.html` : Knitted HTML
+- `data/metabric_data_clinical_patient.csv` : Clinical data
+- `data/metabric_data_mutations.maf` : Mutation data (MAF format)
 
 ## Expression Data
 
