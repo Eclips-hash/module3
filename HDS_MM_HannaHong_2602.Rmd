@@ -724,7 +724,7 @@ min_mutations  <- range_mutations[1]
 max_mutations  <- range_mutations[2]
 ```
 
-```{r q2-fig2a-oncoplot-clean, fig.width=12, fig.height=9, results='hide'}
+```{r q2-fig2a-oncoplot-clean, fig.width=12, fig.height=9}
 # ============================================
 # FIGURE 2A: Clean oncoplot for publication
 # ============================================
@@ -732,7 +732,7 @@ max_mutations  <- range_mutations[2]
 # Ensure output directory exists
 if (!dir.exists("output")) dir.create("output")
 
-# Method 1: Save high-quality PNG
+# Save high-quality PNG
 png("output/Figure2A_Oncoplot.png", 
     width = 12, 
     height = 9, 
@@ -749,12 +749,13 @@ oncoplot(
   gene_mar = 8,
   barcode_mar = 4,
   fontSize = 0.8,
-  titleFontSize = 1.2,
-  legendFontSize = 0.8,
-  annotationFontSize = 0.8
+  titleText = "Figure 2A: Mutation Landscape of Top 20 Genes in METABRIC Cohort",
+  titleFontSize = 1.5,
+  legendFontSize = 1.2,
+  annotationFontSize = 1.0
 )
 
-dev.off()
+invisible(dev.off())
 
 # Display in HTML
 knitr::include_graphics("output/Figure2A_Oncoplot.png")
@@ -769,8 +770,7 @@ top_genes <- head(gene_summary_matched, 20)
 pik3ca_freq <- round(100 * top_genes$MutatedSamples[top_genes$Hugo_Symbol == "PIK3CA"] / n_matched_maf, 0)
 tp53_freq <- round(100 * top_genes$MutatedSamples[top_genes$Hugo_Symbol == "TP53"] / n_matched_maf, 0)
 ```
-
-Figure 2A: Mutation Landscape of Top 20 Genes in METABRIC Cohort. Oncoplot showing mutation profiles across `r n_matched_maf` patients (whole matched cohort). Top panel: tumor mutation burden (total mutations per patient). Main panel: mutation status for top 20 genes (rows) across patients (columns). Colors indicate mutation type: green (missense), red (nonsense), blue (frameshift deletion), brown (in-frame indel), orange (splice site), black (multiple mutations). Right panel: mutation frequency across the whole cohort. PIK3CA (`r pik3ca_freq`%) and TP53 (`r tp53_freq`%) are the most frequently mutated genes, representing key drivers in PI3K pathway activation and genomic instability, respectively.
+Oncoplot showing mutation profiles across `r n_matched_maf` patients (whole matched cohort). Top panel: tumor mutation burden (total mutations per patient). Main panel: mutation status for top 20 genes (rows) across patients (columns). Colors indicate mutation type: green (missense), red (nonsense), blue (frameshift deletion), brown (in-frame indel), orange (splice site), black (multiple mutations). Right panel: mutation frequency across the whole cohort. PIK3CA (`r pik3ca_freq`%) and TP53 (`r tp53_freq`%) are the most frequently mutated genes, representing key drivers in PI3K pathway activation and genomic instability, respectively.
 
 ```{r q2-fig2b-mutation-burden, fig.width=8, fig.height=5}
 # ============================================
@@ -813,6 +813,22 @@ print(burden_plot)
 
 ggsave("output/Figure2B_Mutation_Burden.png", burden_plot,
        width = 8, height = 5, dpi = 300)
+```
+
+``` {r q2-burden-statistics, include=FALSE}
+# ============================================
+# Statistical tests for mutation burden by subtype
+# ============================================
+
+# Create dataframe with mutation burden and clinical info
+burden_data <- maf_summary_matched %>%
+  left_join(clinical_matched, by = c("Tumor_Sample_Barcode" = "patient_id"))
+
+# TEST: Mutation burden by PAM50 subtype (Figure 2C)
+kruskal_pam50 <- kruskal.test(total ~ pam50_subtype, data = burden_data)
+
+# TEST: Mutation burden by IntClust (Figure 2D) - if needed
+kruskal_intclust <- kruskal.test(total ~ intclust_subtype, data = burden_data)
 ```
 
 ```{r q2-fig2c-burden-by-subtype, fig.width=10, fig.height=5}
@@ -1035,11 +1051,11 @@ exhibited a median mutation burden of `r median_burden` mutations per sample
 with right skewing indicating most patients have low mutation burden and a small number 
 of outliers with substantially higher counts (maximum: `r max_mutations` mutations).
 
-The most frequently mutated genes among Luminal-enriched IntClust groups (2, 3, 6, 7, 8, 9) were TP53 (`r tp53_overall_pct`%) and PIK3CA (`r pik3ca_overall_pct`%) (Figure 2E), representing key oncogenic pathways: TP53 (tumour suppressor, genomic instability) and PIK3CA (PI3K pathway activation, cell survival). Note that whole-cohort frequencies differ from these Luminal-group figures (Figure 2A).
+Among Luminal-enriched IntClust groups (2, 3, 6, 7, 8, 9), PIK3CA and TP53 were the most frequently mutated genes, though frequencies varied substantially across groups (Figure 2E). PIK3CA mutation frequency ranged from 19% (IC6) to 65% (IC3), while TP53 ranged from 5% (IC8) to 49% (IC9). These genes represent key oncogenic pathways: TP53 (tumour suppressor, genomic instability) and PIK3CA (PI3K pathway activation, cell survival). Notably, the high-risk groups IC6 and IC9 showed elevated TP53 mutations (43% and 49% respectively), consistent with their poorer prognosis.
 
 ### Mutation Burden and Subtype-Specific Patterns
 
-Mutation burden differed significantly by PAM50 subtype (Kruskal-Wallis p < 0.001, Figure 2C), with Basal-like tumours showing highest burden, consistent with genomic instability characteristic of aggressive disease. Among Luminal-enriched IntClust groups, differences were less pronounced (Figure 2D), suggesting mutation burden alone does not fully explain IntClust-based risk stratification.
+Mutation burden differed significantly by PAM50 subtype (Kruskal-Wallis p = `r format(kruskal_pam50$p.value, digits = 2)`, Figure 2C), with HER2-enriched tumours showing the highest median burden. Among Luminal-enriched IntClust groups, differences were less pronounced (Figure 2D), suggesting mutation burden alone does not fully explain IntClust-based risk stratification.
 
 **TP53 Mutations:** TP53 mutation frequency differed significantly across IntClust groups (chi-square p = `r format.pval(tp53_pval, digits=3)`) (Figure 2E). TP53 mutations were most frequent in IntClust 6 (43%) and IntClust 9 (49%), while low-risk groups showed substantially lower rates (IntClust 3: 12%, IntClust 8: 5%). This pattern reflects the association between TP53 loss and genomic instability in higher-risk subtypes.
 
@@ -1444,7 +1460,7 @@ if (exists("expression_matrix") && all(c("ESR1", "CCND1", "FGFR1") %in% colnames
 }
 ```
 
-The molecular drivers plot confirms that while ESR1 expression remains uniformly high across both groups, CCND1 and FGFR1 are significantly elevated in the hidden high-risk group—genomic amplifications with therapeutic implications (CDK4/6 inhibitors for CCND1, FGFR inhibitors for FGFR1) not discussed under current PAM50-only classification.
+The molecular drivers plot confirms that while ESR1 expression remains uniformly high across both groups, CCND1 and FGFR1 are significantly elevated in the hidden high-risk group, genomic amplifications with therapeutic implications (CDK4/6 inhibitors for CCND1, FGFR inhibitors for FGFR1) not discussed under current PAM50-only classification.
 
 ---
 
@@ -1456,7 +1472,7 @@ This analysis demonstrates that IntClust classification reveals clinically signi
 
 ## Comparison with Existing Literature
 
-These findings align with the original METABRIC publication, which identified IntClust 2 as a high-risk subgroup (HR = 3.62, 95% CI: 1.91–6.88) (Curtis et al. 2012), and the validation study by Ali et al. (2014). The molecular drivers—CCND1 and FGFR1 amplifications—have therapeutic relevance through CDK4/6 inhibitors (Turner et al. 2015; Finn et al. 2016) and FGFR inhibitors (Formisano et al. 2019).
+While Curtis et al. (2012) established IntClust classification and identified IntClust 2 as a high-risk subgroup (HR = 3.62, 95% CI: 1.91–6.88), our analysis specifically quantifies the proportion of PAM50 Luminal patients who receive potentially incomplete prognostic information under current clinical workflows. This reframing, from molecular discovery to clinical communication gap, represents the translational focus of our work. The validation study by Ali et al. (2014) confirmed the prognostic significance of IntClust groups, further supporting the clinical relevance of our findings. The molecular drivers, CCND1 and FGFR1 amplifications, have therapeutic relevance through CDK4/6 inhibitors (Turner et al. 2015; Finn et al. 2016) and FGFR inhibitors (Formisano et al. 2019).
 
 ## Strengths and Limitations
 
@@ -1465,6 +1481,7 @@ METABRIC is one of the largest breast cancer cohorts with integrated clinical, g
 ## Clinical Implications
 
 Current prognostic messaging may inadequately inform Luminal patients about their molecular risk (Hillen et al. 2011; Epstein and Street 2007). Future work should include prospective validation and development of enhanced patient communication frameworks.
+
 ---
 
 # 5. Conclusion
@@ -1487,7 +1504,7 @@ cBioPortal for Cancer Genomics (2024) *METABRIC Study*. Available at: https://ww
 
 Curtis, C., Shah, S.P., Chin, S.F., Turashvili, G., Rueda, O.M., Dunning, M.J., Speed, D., Lynch, A.G., Samarajiwa, S., Yuan, Y., Gräf, S., Ha, G., Haffari, G., Bashashati, A., Russell, R., McKinney, S., METABRIC Group, Langerød, A., Green, A., Provenzano, E., Wishart, G., Pinder, S., Watson, P., Markowetz, F., Murphy, L., Ellis, I., Purushotham, A., Børresen-Dale, A.L., Brenton, J.D., Tavaré, S., Caldas, C. and Aparicio, S. (2012) 'The genomic and transcriptomic architecture of 2,000 breast tumours reveals novel subgroups', *Nature*, 486(7403), pp. 346-352. https://doi.org/10.1038/nature10983
 
-Epstein, R.M. and Street, R.L. (2007) 'Patient-Centered Communication in Cancer Care: Promoting Healing and Reducing Suffering', NIH Publication No. 07-6225. Bethesda, MD: National Cancer Institute.
+Epstein, R.M. and Street, R.L. (2007) 'Patient-Centered Communication in Cancer Care: Promoting Healing and Reducing Suffering', NIH Publication No. 07-6225. Bethesda, MD: National Cancer Institute. Available at: https://cancercontrol.cancer.gov/sites/default/files/2020-06/pcc_monograph.pdf
 
 Finn, R.S., Martin, M., Rugo, H.S., Jones, S., Im, S.A., Gelmon, K., Harbeck, N., Lipatov, O.N., Walshe, J.M., Moulder, S., Gauthier, E., Lu, D.R., Randolph, S., Diéras, V. and Slamon, D.J. (2016) 'Palbociclib and Letrozole in Advanced Breast Cancer', *New England Journal of Medicine*, 375(20), pp. 1925-1936. https://doi.org/10.1056/NEJMoa1607303
 
